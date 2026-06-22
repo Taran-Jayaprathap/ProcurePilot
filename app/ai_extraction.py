@@ -143,6 +143,8 @@ def _extract_penalty(text: str) -> str | None:
     sentences = _sentences(text)
     for sentence in sentences:
         if re.search(r"\b(penalty|termination fee|cancellation fee|early termination|liquidated damages)\b", sentence, flags=re.IGNORECASE):
+            if re.search(r"\b(no|none|without|waived)\b", sentence, flags=re.IGNORECASE):
+                continue
             return sentence
     return None
 
@@ -200,9 +202,12 @@ def _parse_money(value: str) -> float | None:
 
 
 def _sentences(text: str) -> list[str]:
-    compact = re.sub(r"\s+", " ", text)
-    parts = re.split(r"(?<=[.!?])\s+|(?:\n|\r)+|;", compact)
-    return [part.strip(" .") for part in parts if part.strip()]
+    parts = re.split(r"(?<=[.!?])\s+|[\n\r;]+", text)
+    return [
+        re.sub(r"\s+", " ", part).strip(" .")
+        for part in parts
+        if part.strip()
+    ]
 
 
 def _confidence_score(fields: dict[str, object]) -> float:
