@@ -40,3 +40,15 @@ OPENAI_API_KEY=your-openai-key
 The browser never receives the key. The UI calls `/api/analyze`, which uses
 OpenAI on the server and falls back to the seeded demo recommendation if no key
 is configured.
+
+## Deploy on Vercel
+
+Use the Next.js preset. This repository includes `vercel.json` so Vercel uses:
+
+- Install command: `npm install`
+- Build command: `npm run build`
+- Output directory: `.next`
+
+If Vercel shows `No Output Directory named "public" found`, open project
+settings and clear any manually configured `public` output directory, then
+redeploy.
