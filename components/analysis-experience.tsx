@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAiAnalysis } from "@/components/use-ai-analysis";
 import { VendorScoreCard } from "@/components/vendor-score-card";
 import { processingSteps, procurementScenario } from "@/data/procurement";
 import { getAverageDecisionScore, getRecommendedVendor } from "@/lib/scoring";
@@ -19,7 +20,11 @@ import { getAverageDecisionScore, getRecommendedVendor } from "@/lib/scoring";
 export function AnalysisExperience() {
   const [activeStep, setActiveStep] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
-  const recommendedVendor = getRecommendedVendor(procurementScenario.vendors);
+  const { analysis, isLoading, isLive } = useAiAnalysis();
+  const recommendedVendor =
+    procurementScenario.vendors.find(
+      (vendor) => vendor.id === analysis.recommendedVendorId
+    ) ?? getRecommendedVendor(procurementScenario.vendors);
   const averageScore = getAverageDecisionScore(procurementScenario.vendors);
 
   useEffect(() => {
@@ -74,7 +79,7 @@ export function AnalysisExperience() {
         <div>
           <Badge variant="success">
             <BrainCircuit className="mr-2 h-3.5 w-3.5" />
-            Recommendation generated
+            {isLive ? "Live AI recommendation" : "Demo recommendation"}
           </Badge>
           <h1 className="mt-5 max-w-4xl text-5xl font-semibold tracking-[-0.05em] text-white md:text-7xl">
             Executive procurement dashboard.
@@ -97,7 +102,7 @@ export function AnalysisExperience() {
           label="Savings estimate"
           value={
             <>
-              $<AnimatedCounter value={318} />K
+              $<AnimatedCounter value={Math.round(analysis.savingsEstimate / 1000)} />K
             </>
           }
           detail="Expected first-contract savings versus the risk-adjusted alternatives."
@@ -111,10 +116,14 @@ export function AnalysisExperience() {
           label="AI confidence"
           value={
             <>
-              <AnimatedCounter value={recommendedVendor.confidence} />%
+              <AnimatedCounter value={analysis.confidence} />%
             </>
           }
-          detail="Confidence based on extraction quality and document completeness."
+          detail={
+            isLoading
+              ? "Generating confidence from the AI procurement model."
+              : "Confidence based on extraction quality and document completeness."
+          }
         />
       </div>
 
@@ -124,10 +133,18 @@ export function AnalysisExperience() {
             <ShieldAlert className="h-5 w-5 text-cyan-200" />
             <p className="font-medium text-white">AI reasoning</p>
           </div>
-          <AiTyping
-            text={procurementScenario.executiveSummary}
-            className="mt-6 text-xl leading-9 text-slate-300"
-          />
+          {isLoading ? (
+            <div className="mt-6 space-y-3">
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-5/6" />
+              <Skeleton className="h-5 w-2/3" />
+            </div>
+          ) : (
+            <AiTyping
+              text={analysis.executiveSummary}
+              className="mt-6 text-xl leading-9 text-slate-300"
+            />
+          )}
           <div className="mt-8 rounded-3xl border border-white/10 bg-black/20 p-5">
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-400">Decision score delta</span>
@@ -151,7 +168,7 @@ export function AnalysisExperience() {
             <VendorScoreCard
               key={vendor.id}
               vendor={vendor}
-              isRecommended={vendor.id === procurementScenario.recommendedVendorId}
+              isRecommended={vendor.id === analysis.recommendedVendorId}
             />
           ))}
         </div>

@@ -15,12 +15,18 @@ import { AiTyping } from "@/components/ai-typing";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAiAnalysis } from "@/components/use-ai-analysis";
 import { procurementScenario } from "@/data/procurement";
 import { formatCompactCurrency, formatCurrency } from "@/lib/utils";
 import { getRecommendedVendor } from "@/lib/scoring";
 
 export function DecisionReport() {
-  const winner = getRecommendedVendor(procurementScenario.vendors);
+  const { analysis, isLoading, isLive } = useAiAnalysis();
+  const winner =
+    procurementScenario.vendors.find(
+      (vendor) => vendor.id === analysis.recommendedVendorId
+    ) ?? getRecommendedVendor(procurementScenario.vendors);
 
   return (
     <motion.div
@@ -33,7 +39,7 @@ export function DecisionReport() {
         <div>
           <Badge variant="success">
             <Medal className="mr-2 h-3.5 w-3.5" />
-            Final recommendation
+            {isLive ? "Live AI final recommendation" : "Demo final recommendation"}
           </Badge>
           <h1 className="mt-5 max-w-4xl text-5xl font-semibold tracking-[-0.05em] text-white md:text-7xl">
             Choose {winner.name}.
@@ -65,10 +71,18 @@ export function DecisionReport() {
             <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white md:text-6xl">
               {winner.name}
             </h2>
-            <AiTyping
-              text={winner.executiveReasoning}
-              className="mt-6 text-xl leading-9 text-slate-300"
-            />
+            {isLoading ? (
+              <div className="mt-6 space-y-3">
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-5/6" />
+                <Skeleton className="h-5 w-2/3" />
+              </div>
+            ) : (
+              <AiTyping
+                text={analysis.reasoning}
+                className="mt-6 text-xl leading-9 text-slate-300"
+              />
+            )}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
@@ -80,7 +94,7 @@ export function DecisionReport() {
             <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
               <p className="text-sm text-slate-400">AI confidence</p>
               <p className="mt-2 text-4xl font-semibold text-white">
-                {winner.confidence}%
+                {analysis.confidence}%
               </p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
@@ -92,7 +106,7 @@ export function DecisionReport() {
             <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
               <p className="text-sm text-slate-400">Savings estimate</p>
               <p className="mt-2 text-4xl font-semibold text-white">
-                {formatCompactCurrency(procurementScenario.savingsEstimate)}
+                {formatCompactCurrency(analysis.savingsEstimate)}
               </p>
             </div>
           </div>
@@ -130,6 +144,18 @@ export function DecisionReport() {
               </li>
             ))}
           </ul>
+          <div className="mt-6 border-t border-white/10 pt-5">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+              AI risk watchlist
+            </p>
+            <ul className="mt-3 space-y-3">
+              {analysis.riskWatchlist.map((risk) => (
+                <li key={risk} className="text-sm leading-6 text-slate-300">
+                  {risk}
+                </li>
+              ))}
+            </ul>
+          </div>
         </Card>
 
         <Card className="p-6">
@@ -138,7 +164,7 @@ export function DecisionReport() {
             Negotiation suggestions
           </h3>
           <ul className="mt-5 space-y-4">
-            {winner.negotiationSuggestions.map((suggestion) => (
+            {analysis.negotiationPriorities.map((suggestion) => (
               <li
                 key={suggestion}
                 className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm leading-6 text-slate-300"
@@ -157,8 +183,7 @@ export function DecisionReport() {
               Export executive report
             </h3>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-              Export a board-ready procurement memo with vendor ranking, hidden
-              costs, decision score, and negotiation actions.
+              {analysis.decisionMemo}
             </p>
           </div>
           <Button
